@@ -75,12 +75,15 @@ class ImageView(QGraphicsView):
         super().mouseReleaseEvent(event)
 
     def zoom_in(self):
+        self.setInteractive(True)
         self.scale(1.2, 1.2)
 
     def zoom_out(self):
+        self.setInteractive(True)
         self.scale(1 / 1.2, 1 / 1.2)
 
     def resizeEvent(self, event):
         if self._pixmap_item:
             self.fitInView(self._pixmap_item, Qt.KeepAspectRatio)
         super().resizeEvent(event)
+        self.setInteractive(False) # Disable scrollbars after fitting

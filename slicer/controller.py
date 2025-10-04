@@ -40,6 +40,10 @@ class Controller(QObject):
         self.main_window.add_files_action.triggered.connect(self.add_files_to_project)
 
     def load_current_file(self):
+        if not self.project.files:
+            QMessageBox.information(self.main_window, "No Files", "No files to display.")
+            return
+
         self._update_file_combo()
         
         self.main_window.stretch_combo.blockSignals(True)
@@ -62,7 +66,26 @@ class Controller(QObject):
             self.main_window.setWindowTitle(f"{self.project.name} - FITS Image Slicer")
             self._refresh_overlays()
         except Exception as e:
-            QMessageBox.critical(self.main_window, "Error", f"Error loading FITS file: {e}")
+            reply = QMessageBox.critical(
+                self.main_window, "Error Loading File",
+                f"Failed to load {os.path.basename(file_path)}.\n\n"
+                f"Error: {e}\n\n"
+                "Would you like to remove this file from the project?",
+                QMessageBox.Yes | QMessageBox.No | QMessageBox.Ignore,
+                QMessageBox.Ignore
+            )
+            if reply == QMessageBox.Yes:
+                self.project.files.pop(self.current_file_index)
+                self.project.save()
+                if self.current_file_index >= len(self.project.files):
+                    self.current_file_index = len(self.project.files) - 1
+                self.load_current_file()
+            elif reply == QMessageBox.No:
+                # Just skip to the next file
+                if self.current_file_index < len(self.project.files) - 1:
+                    self.next_file()
+            else: # Ignore
+                pass
 
     def _refresh_overlays(self):
         self.main_window.image_view.clear_patches()

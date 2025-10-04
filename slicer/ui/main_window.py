@@ -77,14 +77,10 @@ class MainWindow(QMainWindow):
         labels_menu.addAction(self.edit_labels_action)
 
         view_menu = self.menu_bar.addMenu("&View")
-        self.zscale_action = QAction("&Z-Scale", self)
-        self.zscale_action.setCheckable(True)
-        self.zscale_action.setChecked(True)
-        view_menu.addAction(self.zscale_action)
 
-        self.patch_table_dock_action = self.patch_table_dock.toggleViewAction()
-        self.patch_table_dock_action.setText("&Patch Table")
-        view_menu.addAction(self.patch_table_dock_action)
+        patch_table_action = self.patch_table_dock.toggleViewAction()
+        patch_table_action.setText("Patch Table")
+        view_menu.addAction(patch_table_action)
 
     def _create_patch_table_dock(self):
         self.patch_table_dock = QDockWidget("Patch Table", self)

@@ -1,4 +1,5 @@
 
+import dataclasses
 from dataclasses import dataclass
 
 @dataclass
@@ -10,3 +11,5 @@ class Config:
     csv_name: str = "patches.csv"
     overlay_color: str = "lime"
     overlay_linewidth: float = 1.0
+    labels: list[str] = dataclasses.field(default_factory=list)
+    stretch_mode: str = "zscale"

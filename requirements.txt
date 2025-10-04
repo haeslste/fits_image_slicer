@@ -1,3 +1,7 @@
-astropy 
-matplotlib 
+astropy
 numpy
+PySide6
+Pillow
+scikit-image
+matplotlib
+scipy

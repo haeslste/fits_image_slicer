@@ -1,6 +1,7 @@
 
 from PySide6.QtWidgets import QTableView
 from PySide6.QtCore import QAbstractTableModel, Qt, QModelIndex
+from .delegates import LabelDelegate
 
 class PatchTableModel(QAbstractTableModel):
     def __init__(self, data=None, headers=None, parent=None):
@@ -40,10 +41,20 @@ class PatchTableModel(QAbstractTableModel):
 class PatchTableView(QTableView):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.model = PatchTableModel(headers=["patch_id", "label"])
-        self.setModel(self.model)
+        self.model = None
 
-    def set_patches(self, patches_meta):
+    def set_patches(self, patches_meta, labels):
+        headers = ["patch_id", "label"]
         data = [[p.get("patch_id"), p.get("label")] for p in patches_meta]
-        self.model = PatchTableModel(data=data, headers=["patch_id", "label"])
+        
+        self.model = PatchTableModel(data=data, headers=headers)
         self.setModel(self.model)
+        
+        delegate = LabelDelegate(labels=labels)
+        self.setItemDelegateForColumn(headers.index("label"), delegate)
+        
+        self.model.dataChanged.connect(self.on_data_changed)
+
+    def on_data_changed(self, top_left, bottom_right):
+        # This is where we'll emit a signal to the controller
+        pass

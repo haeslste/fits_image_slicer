@@ -81,7 +81,6 @@ class Controller(QObject):
                     self.current_file_index = len(self.project.files) - 1
                 self.load_current_file()
             elif reply == QMessageBox.No:
-                # Just skip to the next file
                 if self.current_file_index < len(self.project.files) - 1:
                     self.next_file()
             else: # Ignore
@@ -99,7 +98,27 @@ class Controller(QObject):
                 color=color,
                 linewidth=self.cfg.overlay_linewidth,
             )
-        self.main_window.patch_table_view.set_patches(self.patch_exporter.patches_meta)
+        
+        # Disconnect first to avoid duplicate connections
+        if self.main_window.patch_table_view.model is not None:
+            self.main_window.patch_table_view.model.dataChanged.disconnect(self.on_patch_label_changed)
+            
+        self.main_window.patch_table_view.set_patches(self.patch_exporter.patches_meta, self.cfg.labels)
+        self.main_window.patch_table_view.model.dataChanged.connect(self.on_patch_label_changed)
+
+    @Slot(object, object)
+    def on_patch_label_changed(self, top_left, bottom_right):
+        row = top_left.row()
+        new_label = self.patch_exporter.patches_meta[row]["label"]
+        
+        # This is a bit of a hack, but it works.
+        # We get the new label from the model, update the patch_meta, and then refresh.
+        model_label = self.main_window.patch_table_view.model.data(top_left, 0)
+        if new_label != model_label:
+            self.patch_exporter.patches_meta[row]["label"] = model_label
+            self._update_project_patches()
+            self._refresh_overlays()
+
 
     def _update_file_combo(self):
         self.main_window.file_combo.blockSignals(True)

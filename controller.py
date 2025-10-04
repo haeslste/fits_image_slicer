@@ -1,6 +1,6 @@
 
 import os
-from PySide6.QtCore import QObject, Slot
+from PySide6.QtCore import QObject, Slot, QRect
 from PySide6.QtWidgets import QMessageBox
 from ui.main_window import MainWindow
 from ui.assign_label_dialog import AssignLabelDialog
@@ -41,7 +41,6 @@ class Controller(QObject):
     def load_current_file(self):
         self._update_file_combo()
         
-        # Set stretch combo without triggering signal
         self.main_window.stretch_combo.blockSignals(True)
         self.main_window.stretch_combo.setCurrentText(self.cfg.stretch_mode.title())
         self.main_window.stretch_combo.blockSignals(False)
@@ -51,18 +50,32 @@ class Controller(QObject):
             self.fits_image_model = FitsImageModel(file_path)
             self.patch_exporter = PatchExporter(self.cfg, self.fits_image_model)
             
-            current_patches = self.project.patches.get(file_path, [])
+            current_patches = self.project.patches.get(_normalize_path(file_path), [])
             self.patch_exporter.patches_meta = current_patches
             
             image_data = self.fits_image_model.get_normalized_image_data(
                 stretch_mode=self.cfg.stretch_mode
             )
-            self.main_window.image_view.set_image(image_data)
+            self.main_window.image_view.set_image(image_data, reset_view=True)
             self.main_window.update_status(f"Loaded {os.path.basename(file_path)}")
             self.main_window.setWindowTitle(f"{self.project.name} - FITS Image Slicer")
-            self._refresh_view()
+            self._refresh_overlays()
         except Exception as e:
             QMessageBox.critical(self.main_window, "Error", f"Error loading FITS file: {e}")
+
+    def _refresh_overlays(self):
+        self.main_window.image_view.clear_patches()
+        for patch_meta in self.patch_exporter.patches_meta:
+            color = self.cfg.get_color_for_label(patch_meta.get("label"))
+            self.main_window.image_view.add_patch_overlay(
+                patch_meta["x0"],
+                patch_meta["y0"],
+                patch_meta["width"],
+                patch_meta["height"],
+                color=color,
+                linewidth=self.cfg.overlay_linewidth,
+            )
+        self.main_window.patch_table_view.set_patches(self.patch_exporter.patches_meta)
 
     def _update_file_combo(self):
         self.main_window.file_combo.blockSignals(True)
@@ -75,13 +88,13 @@ class Controller(QObject):
     def next_file(self):
         if self.current_file_index < len(self.project.files) - 1:
             self.current_file_index += 1
-            self.main_window.file_combo.setCurrentIndex(self.current_file_index)
+            self.load_current_file()
 
     @Slot()
     def prev_file(self):
         if self.current_file_index > 0:
             self.current_file_index -= 1
-            self.main_window.file_combo.setCurrentIndex(self.current_file_index)
+            self.load_current_file()
             
     @Slot(int)
     def jump_to_file(self, index):
@@ -89,22 +102,24 @@ class Controller(QObject):
             self.current_file_index = index
             self.load_current_file()
 
-    @Slot(int, int, int, int)
-    def on_region_selected(self, x0: int, y0: int, x1: int, y1: int):
+    @Slot(QRect)
+    def on_region_selected(self, rect: QRect):
         if self.patch_exporter:
+            x0, y0, x1, y1 = rect.left(), rect.top(), rect.right(), rect.bottom()
+            
+            label = None
             if self.cfg.labels:
                 dialog = AssignLabelDialog(self.main_window, self.cfg.labels)
                 if dialog.exec():
                     label = dialog.get_selected_label()
-                    patch_meta = self.patch_exporter.save_patch(x0, y0, x1, y1, label)
                 else:
-                    return
-            else:
-                patch_meta = self.patch_exporter.save_patch(x0, y0, x1, y1)
+                    return # User cancelled
+            
+            patch_meta = self.patch_exporter.save_patch(x0, y0, x1, y1, label)
 
             if patch_meta:
                 self._update_project_patches()
-                self._refresh_view()
+                self._refresh_overlays()
 
     def _update_project_patches(self):
         file_path = _normalize_path(self.project.files[self.current_file_index])
@@ -116,31 +131,14 @@ class Controller(QObject):
         if self.patch_exporter:
             self.patch_exporter.undo_last_patch()
             self._update_project_patches()
-            self._refresh_view()
+            self._refresh_overlays()
 
     @Slot()
     def clear_all_patches(self):
         if self.patch_exporter:
             self.patch_exporter.clear_all_patches()
             self._update_project_patches()
-            self._refresh_view()
-
-    def _refresh_view(self):
-        if self.fits_image_model:
-            image_data = self.fits_image_model.get_normalized_image_data(
-                stretch_mode=self.cfg.stretch_mode
-            )
-            self.main_window.image_view.set_image(image_data)
-            for patch_meta in self.patch_exporter.patches_meta:
-                self.main_window.image_view.add_patch_overlay(
-                    patch_meta["x0"],
-                    patch_meta["y0"],
-                    patch_meta["width"],
-                    patch_meta["height"],
-                    color=self.cfg.overlay_color,
-                    linewidth=self.cfg.overlay_linewidth,
-                )
-            self.main_window.patch_table_view.set_patches(self.patch_exporter.patches_meta)
+            self._refresh_overlays()
 
     @Slot(str)
     def change_stretch_mode(self, mode):
@@ -151,7 +149,13 @@ class Controller(QObject):
             "Hist. Eq.": "histeq"
         }
         self.cfg.stretch_mode = mode_map.get(mode, "zscale")
-        self._refresh_view()
+        
+        if self.fits_image_model:
+            image_data = self.fits_image_model.get_normalized_image_data(
+                stretch_mode=self.cfg.stretch_mode
+            )
+            self.main_window.image_view.set_image(image_data, reset_view=False)
+
 
     @Slot()
     def edit_labels(self):

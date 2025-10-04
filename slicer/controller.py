@@ -2,11 +2,12 @@
 import os
 from PySide6.QtCore import QObject, Slot, QRect
 from PySide6.QtWidgets import QMessageBox
-from ui.main_window import MainWindow
-from ui.assign_label_dialog import AssignLabelDialog
-from ui.add_files_dialog import AddFilesDialog
-from models import FitsImageModel, PatchExporter
-from project import Project, _normalize_path
+from .ui.main_window import MainWindow
+from .ui.assign_label_dialog import AssignLabelDialog
+from .ui.add_files_dialog import AddFilesDialog
+from .models import FitsImageModel, PatchExporter
+from .project import Project, _normalize_path
+from .ui.label_dialog import LabelDialog
 
 class Controller(QObject):
     def __init__(self, main_window: MainWindow, project: Project):

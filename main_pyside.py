@@ -1,13 +1,13 @@
 
 import sys
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
-from ui.main_window import MainWindow
-from controller import Controller
-from project import Project
-from ui.project_wizard import ProjectWizard
-from ui.new_project_dialog import NewProjectDialog
-from ui.add_files_dialog import AddFilesDialog
-from ui.confirm_add_files_dialog import ConfirmAddFilesDialog
+from slicer.ui.main_window import MainWindow
+from slicer.controller import Controller
+from slicer.project import Project
+from slicer.ui.project_wizard import ProjectWizard
+from slicer.ui.new_project_dialog import NewProjectDialog
+from slicer.ui.add_files_dialog import AddFilesDialog
+from slicer.ui.confirm_add_files_dialog import ConfirmAddFilesDialog
 
 def main():
     app = QApplication(sys.argv)

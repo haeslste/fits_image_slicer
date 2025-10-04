@@ -7,7 +7,7 @@ from typing import List, Tuple, Optional
 import numpy as np
 from astropy.io import fits
 from astropy.nddata import Cutout2D
-from astropy_importer import WCS
+from .astropy_importer import WCS
 from astropy.visualization import (
     ZScaleInterval, AsinhStretch, ImageNormalize,
     LinearStretch, LogStretch, MinMaxInterval
@@ -17,7 +17,7 @@ from skimage.exposure import equalize_hist
 from PIL import Image
 
 from config import Config
-from processing_utils import compute_integer_bounds, size_ok, in_img_bounds
+from .processing_utils import compute_integer_bounds, size_ok, in_img_bounds
 
 class FitsImageModel:
     def __init__(self, fits_path: str):
